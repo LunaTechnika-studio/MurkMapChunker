@@ -1,4 +1,4 @@
-use bedrockrs::level::level::level::{BedrockLevel, ChunkSelectionFilter, GetBlockConfig, LevelConfiguration, LevelDbError};
+use bedrockrs::level::level::level::{BedrockLevel, LevelConfiguration, LevelDbError};
 use bedrockrs::core::world::dimension::Dimension;
 use bedrockrs::level::level::sub_chunk::{SubChunk, SubChunkSerDe, SerDeStore, SubChunkTraitExtended, SubChunkTrait};
 use std::path::Path;
@@ -7,11 +7,13 @@ use std::path::Path;
 use std::fs::File;
 use std::fs;
 use serde_json;
-use std::io::{self, Write, BufWriter, BufReader, BufRead};
+use std::io::{Write};
 use bedrockrs::level::level::db_interface::bedrock_key::ChunkKey;
-use bedrockrs::level::level::db_interface::rusty::DBError;
 use bedrockrs::level::level::file_interface::RawWorldTrait;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
+use bincode;
+use flate2::Compression;
+use flate2::write::GzEncoder;
 
 #[derive(Deserialize, Debug)]
 struct Config {
@@ -32,21 +34,28 @@ fn load_world() -> Result<BedrockLevel, LevelDbError> {
 // fetches
 fn fetch_subchunk(x: i32, y: i32, z: i32, bedrock_level: &mut BedrockLevel) -> SubChunk {
     println!("subchunk coordinates {},{},{}", x, y, z);
-    let sub_chunk = bedrock_level
-        .get_sub_chunk::<SubChunk, SubChunkSerDe>(
-            (x,y,z).into(),
-            Dimension::Overworld,
-            SerDeStore::default(),
-        )
-        .expect("Read failed")
-        .unwrap_or_else(|| SubChunk::empty((x, y, z).into(), Dimension::Overworld).to_init());
-    return sub_chunk;
+    match bedrock_level.get_sub_chunk::<SubChunk, SubChunkSerDe>(
+        (x, y, z).into(),
+        Dimension::Overworld,
+        SerDeStore::default(),
+    ) {
+        Ok(Some(sub_chunk)) => sub_chunk, // Successfully fetched the sub-chunk
+        Ok(None) => {
+            // Handle the case where the sub-chunk is missing (but no error occurred)
+            println!("Sub-chunk is missing, returning empty sub-chunk.");
+            SubChunk::empty((x, y, z).into(), Dimension::Overworld).to_init()
+        }
+        Err(e) => {
+            // Handle the case where fetching failed
+            println!("Error fetching sub-chunk: {:?}", e);
+            SubChunk::empty((x, y, z).into(), Dimension::Overworld).to_init()
+        }
+    }
 }
 
 fn construct_vector_data(subchunk_data:Vec<SubChunk>){
-    let file_path: String = format!("./csvs/{}_{}.csv", subchunk_data[0].position().x, subchunk_data[0].position().z);
-    let file = File::create(&file_path).unwrap();
-    let mut writer = BufWriter::new(file);
+    let file_path: String = format!("./chunk_binary_data/{}_{}.mmbf", subchunk_data[0].position().x, subchunk_data[0].position().z);
+    let mut file = File::create(&file_path).unwrap();
     let mut chunk_scan: Vec<(i32, i32, i32, String)> = Vec::new();
 
     for subchunk in subchunk_data{
@@ -62,10 +71,11 @@ fn construct_vector_data(subchunk_data:Vec<SubChunk>){
             }
         }
     }
-    for block in chunk_scan {
-        writer.write_all((format!("{:?},{:?},{:?},{:?}\n", block.0, block.1, block.2, block.3)).as_bytes()).unwrap();
-        writer.flush().unwrap();
-    }
+    let serelialized_chunk = bincode::serialize(&chunk_scan).unwrap();
+    let mut encoder = GzEncoder::new(file, Compression::fast());
+    encoder.write_all(&serelialized_chunk).unwrap();
+
+
     let metadata = fs::metadata(&file_path).unwrap();
     if metadata.len() == 0 {
         fs::remove_file(&file_path).unwrap();
@@ -75,7 +85,7 @@ fn construct_vector_data(subchunk_data:Vec<SubChunk>){
 fn main() {
     let mut bedrock_level = load_world().unwrap();
 
-    let dir_path = Path::new("./csvs");
+    let dir_path = Path::new("./chunk_binary_data");
     fs::create_dir_all(dir_path).unwrap();
 
     let config_str = fs::read_to_string("./chunker.json").expect("Failed to load config!");
@@ -100,7 +110,7 @@ fn main() {
             let mut subchunk_identifier:Vec<String> = Vec::new();
             for x in limit_x..limit_x+1 {
                 for z in limit_z..limit_z+1 {
-                    for y in (0..20).rev() {
+                    for y in (-4..20).rev() {
                         let chunk_key = ChunkKey::new_sub_chunk((x, y, z).into(), Dimension::Overworld);
                         {
                             let level_db_raw = bedrock_level.underlying_world_interface();

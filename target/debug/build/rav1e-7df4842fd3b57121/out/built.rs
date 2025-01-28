@@ -48,7 +48,7 @@ pub const HOST: &str = r"aarch64-apple-darwin";
 pub const PROFILE: &str = r"debug";
 #[doc=r#"The compiler that cargo resolved to use."#]
 #[allow(dead_code)]
-pub const RUSTC: &str = r"/Users/legitbox/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc";
+pub const RUSTC: &str = r"/Users/legitbox/.cargo/bin/rustc";
 #[doc=r#"The documentation generator that cargo resolved to use."#]
 #[allow(dead_code)]
 pub const RUSTDOC: &str = r"/Users/legitbox/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustdoc";
@@ -73,7 +73,7 @@ pub const FEATURES_LOWERCASE: [&str; 1] = ["threading"];
 #[doc=r#"The feature-string as above, from lowercase strings."#]
 #[allow(dead_code)]
 pub const FEATURES_LOWERCASE_STR: &str = r"threading";
-#[doc=r#"The output of `/Users/legitbox/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc -V`"#]
+#[doc=r#"The output of `/Users/legitbox/.cargo/bin/rustc -V`"#]
 #[allow(dead_code)]
 pub const RUSTC_VERSION: &str = r"rustc 1.84.0 (9fc6b4312 2025-01-07)";
 #[doc=r#"The output of `/Users/legitbox/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustdoc -V`; empty string if `/Users/legitbox/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustdoc -V` failed to execute"#]
