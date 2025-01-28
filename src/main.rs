@@ -8,6 +8,9 @@ use std::fs::File;
 use std::fs;
 use serde_json;
 use std::io::{self, Write, BufWriter, BufReader, BufRead};
+use bedrockrs::level::level::db_interface::bedrock_key::ChunkKey;
+use bedrockrs::level::level::db_interface::rusty::DBError;
+use bedrockrs::level::level::file_interface::RawWorldTrait;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -28,6 +31,7 @@ fn load_world() -> Result<BedrockLevel, LevelDbError> {
 
 // fetches
 fn fetch_subchunk(x: i32, y: i32, z: i32, bedrock_level: &mut BedrockLevel) -> SubChunk {
+    println!("subchunk coordinates {},{},{}", x, y, z);
     let sub_chunk = bedrock_level
         .get_sub_chunk::<SubChunk, SubChunkSerDe>(
             (x,y,z).into(),
@@ -89,17 +93,29 @@ fn main() {
     ");
     println!("[MurkMapChunker] Loaded config, scanning range: {},{}", config.scan_limit_x, config.scan_limit_z);
 
-    //let mut progress:f32 = 0.0;
-    //let progress_step:f32 = (config.scan_limit_x as f32 + config.scan_limit_z as f32) / 100.0;
-    for limit_x in 0..config.scan_limit_x{
-        for limit_z in 0..config.scan_limit_z{
+    let mut progress:f32 = 0.0;
+    for limit_x in -config.scan_limit_x..config.scan_limit_x{
+        for limit_z in -config.scan_limit_z..config.scan_limit_z{
             let mut subchunk_data:Vec<SubChunk> = Vec::new();
             let mut subchunk_identifier:Vec<String> = Vec::new();
             for x in limit_x..limit_x+1 {
                 for z in limit_z..limit_z+1 {
                     for y in (-4..20).rev() {
-                        subchunk_data.push(fetch_subchunk(x, y, z, &mut bedrock_level));
-                        subchunk_identifier.push(format!("{}_{}", x, z));
+                        let chunk_key = ChunkKey::new_sub_chunk((x, y, z).into(), Dimension::Overworld);
+                        {
+                            let level_db_raw = bedrock_level.underlying_world_interface();
+                            let chunk_raw = level_db_raw.get_sub_chunk_raw(chunk_key);
+                            println!("{:?}", chunk_raw);
+                            match chunk_raw {
+                                Ok(None) => {
+                                }
+                                Ok(Some(chunk)) => {
+                                    subchunk_data.push(fetch_subchunk(x, y, z, &mut bedrock_level));
+                                    subchunk_identifier.push(format!("{}_{}", x, z));
+                                }
+                                Err(e) => {}
+                            }
+                        }
                     }
                 }
             }
@@ -107,7 +123,5 @@ fn main() {
                 construct_vector_data(subchunk_data);
             }
         }
-        //progress += progress_step;
-        //println!("{}", progress);
     }
 }

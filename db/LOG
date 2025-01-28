@@ -1,4 +1,4 @@
-Recovered manifest with next_file=1858 manifest_num=1857 log_num=1854 prev_log_num=0 last_seq=1283166
+Recovered manifest with next_file=1832 manifest_num=1831 log_num=1828 prev_log_num=0 last_seq=1004374
 reusing manifest "./db/MANIFEST-000498"
-Recovering log file "/Users/legitbox/Documents/GitHub/MurkMapChunker/db/001854.log"
-reusing log file "/Users/legitbox/Documents/GitHub/MurkMapChunker/db/001854.log"
+Recovering log file "/Users/legitbox/Documents/GitHub/MurkMapChunker/db/001828.log"
+reusing log file "/Users/legitbox/Documents/GitHub/MurkMapChunker/db/001828.log"
