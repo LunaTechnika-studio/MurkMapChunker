@@ -100,12 +100,11 @@ fn main() {
             let mut subchunk_identifier:Vec<String> = Vec::new();
             for x in limit_x..limit_x+1 {
                 for z in limit_z..limit_z+1 {
-                    for y in (-4..20).rev() {
+                    for y in (0..20).rev() {
                         let chunk_key = ChunkKey::new_sub_chunk((x, y, z).into(), Dimension::Overworld);
                         {
                             let level_db_raw = bedrock_level.underlying_world_interface();
                             let chunk_raw = level_db_raw.get_sub_chunk_raw(chunk_key);
-                            println!("{:?}", chunk_raw);
                             match chunk_raw {
                                 Ok(None) => {
                                 }
